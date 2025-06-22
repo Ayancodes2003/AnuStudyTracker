@@ -22,48 +22,60 @@ def progress_dashboard_page():
     tasks = load_tasks()
 
     if not tasks:
-        st.info("No tasks available to show progress. Complete some tasks in the Study Planner! 📝")
-        st.image("https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM2NmMjY3ZWM3Y2YwZGJlZDA4ZWIzY2U2YzA0MWI3MjU0YjJkN2VhYiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o7TKSjRrfOfv92gV2/giphy.gif", caption="Keep up the great work!")
-        st.stop()
-
-    df = pd.DataFrame(tasks)
-    
-    # --- Overall Progress ---
-    with st.container(border=True):
-        st.subheader("Overall Task Progress")
-        completed_count = df["completed"].sum()
-        total_count = len(df)
-        progress = completed_count / total_count if total_count > 0 else 0
+        st.info("No tasks available to show progress. Complete some tasks in the Study Planner! 💪")
+        st.image("https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExdTkxZzJjMWRhN24wamx0eWN4dWI0bWZsc214eGNleGg2bXR3MTU4cyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/d2jjuAZzDSbZp3i0/giphy.gif", use_column_width=True)
+    else:
+        df = pd.DataFrame(tasks)
         
-        st.progress(progress)
-        st.markdown(f"You have completed **{completed_count}** out of **{total_count}** tasks. Keep going! 🎉")
+        # Ensure 'status' column exists
+        if 'status' not in df.columns:
+            df['status'] = df['completed'].apply(lambda x: "Completed" if x else "Not Started")
 
-    st.divider()
-
-    col1, col2 = st.columns(2)
-
-    with col1:
+        total_tasks = len(df)
+        completed_tasks = len(df[df['status'] == 'Completed'])
+        
+        # --- Overall Progress ---
         with st.container(border=True):
-            st.subheader("Tasks by Status")
-            status_counts = df["completed"].value_counts().reset_index()
-            status_counts.columns = ['completed', 'count']
-            status_counts['status'] = status_counts['completed'].map({True: 'Completed', False: 'Incomplete'})
-            fig_pie = px.pie(status_counts, names='status', values='count', 
-                             color='status',
-                             color_discrete_map={'Completed':'#90EE90', 'Incomplete':'#FFB6C1'},
-                             hole=0.4)
-            st.plotly_chart(fig_pie, use_container_width=True)
+            st.subheader("Overall Progress")
+            progress = (completed_tasks / total_tasks) * 100 if total_tasks > 0 else 0
+            st.progress(int(progress), text=f"{completed_tasks} / {total_tasks} Tasks Completed")
 
-    with col2:
-        with st.container(border=True):
-            st.subheader("Tasks by Category")
-            category_counts = df["category"].value_counts().reset_index()
-            category_counts.columns = ['category', 'count']
-            fig_bar = px.bar(category_counts, x='category', y='count', 
-                             color='category',
-                             color_discrete_sequence=px.colors.sequential.Pastel,
-                             labels={'category': 'Category', 'count': 'Number of Tasks'})
-            st.plotly_chart(fig_bar, use_container_width=True)
+        # --- Charts ---
+        col1, col2 = st.columns(2)
+        with col1:
+            with st.container(border=True):
+                # Bar Chart: Tasks per Category
+                category_counts = df["category"].value_counts().reset_index()
+                category_counts.columns = ['category', 'count']
+                fig_bar = px.bar(
+                    category_counts,
+                    x='category',
+                    y='count',
+                    title="Total Tasks per Category",
+                    color='category',
+                    color_discrete_sequence=px.colors.qualitative.Pastel,
+                    labels={'count': 'Number of Tasks', 'category': 'Category'}
+                )
+                st.plotly_chart(fig_bar, use_container_width=True)
+
+        with col2:
+            with st.container(border=True):
+                # Pie Chart: Task Status
+                status_counts = df["status"].value_counts().reset_index()
+                status_counts.columns = ['status', 'count']
+                fig_pie = px.pie(
+                    status_counts,
+                    names='status',
+                    values='count',
+                    title="Task Status Distribution",
+                    color='status',
+                    color_discrete_map={
+                        'Completed': '#A9E7A9',
+                        'In Progress': '#A9D2E7',
+                        'Not Started': '#E7A9A9'
+                    }
+                )
+                st.plotly_chart(fig_pie, use_container_width=True)
 
 
 # --- App Logic ---
